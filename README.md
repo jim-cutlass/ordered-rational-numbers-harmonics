@@ -1,1 +1,3 @@
-# ordered-rational-numbers-harmonics
+# Ordered rational numbers harmonics
+
+Create harmonic sounds in an intuitive UI
