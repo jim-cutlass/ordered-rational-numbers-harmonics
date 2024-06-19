@@ -1,0 +1,235 @@
+﻿<html>
+<meta charset="utf-8">
+<head>
+<style>
+span.lambdomaElementOff { 
+  width: 2em;
+  height: 2em;
+  color: green;
+  background-color: lightyellow;
+  border:  2px solid red;
+  border-radius: .1em;
+  margin:  2px;
+  padding: 2px;
+  display: inline-block;
+}
+
+span.lambdomaElementOn { 
+  width: 2em;
+  height: 2em;
+  color: green;
+  background-color: blue;
+  color: white;
+  border:  2px solid red;
+  border-radius: .1em;
+  margin:  2px;
+  padding: 2px;
+  display: inline-block;
+}
+</style>
+
+<script src="external-libraries/Tone.js"></script>
+<script src="external-libraries/audiolet/audiolet/Audiolet.js"></script>
+
+<script>
+
+"use strict";
+
+if(typeof Tone != "undefined") {
+
+	// Tone.js  docs are here: https://tonejs.github.io
+
+	var ToneWithMultiplicity=function (frequency, waveTypeString) {
+		this.tone=new Tone.Oscillator({frequency:frequency, type:waveTypeString, volume:-16});
+		this.multiplicity=1;
+	}
+		
+	ToneWithMultiplicity.prototype.start = function() {
+		var masterTone=this.tone.toMaster();
+		masterTone.start();
+		return masterTone;
+	}
+		
+	ToneWithMultiplicity.prototype.stop = function() {
+		this.tone.stop();
+	}
+
+	alert("using Tone-lib version " + Tone.version);
+	
+} else if(typeof Audiolet != "undefined") {
+
+	// Audiolet docs are here: https://github.com/oampo/Audiolet/wiki
+
+	var audiolet = null;
+
+	var ToneWithMultiplicity=function (frequency, waveTypeString) {
+		if(audiolet == null) {
+			audiolet = new Audiolet()
+		}
+		this.sine = new Sine(audiolet, frequency);
+		this.multiplicity=1;
+	}
+
+	ToneWithMultiplicity.prototype.start = function() {
+		this.sine.connect(audiolet.output);
+		return this;
+	};
+		
+	ToneWithMultiplicity.prototype.stop = function() {
+		this.sine.disconnect(audiolet.output);
+	};
+	alert("using Audiolet-lib");
+}
+</script>
+
+<script>
+var soundModel = {
+	mapOfAllNotes : {},
+	frequencyOfBasenoteInHz : 220.0,
+	switchOnRelativeNote : function(freq) {
+		if( this.mapOfAllNotes[freq] instanceof ToneWithMultiplicity) {
+			this.mapOfAllNotes[freq].multiplicity++;
+		} else {
+			var tone = new ToneWithMultiplicity(this.frequencyOfBasenoteInHz*freq, "sawtooth2");
+			tone.start();
+			this.mapOfAllNotes[freq] = tone;
+		}
+	},
+	switchOffSingleRelativeNote : function(freq) {
+		var currentNote=this.mapOfAllNotes[freq];
+		if(currentNote instanceof ToneWithMultiplicity) {
+			if(currentNote.multiplicity === 1) {
+				currentNote.stop();
+				this.mapOfAllNotes[freq]=false;
+			} else {
+				currentNote.multiplicity--;
+			}
+		} 
+	},
+	switchOffRelativeNoteComplete : function(freq) {
+		var currentNote=this.mapOfAllNotes[freq];
+		if(currentNote instanceof ToneWithMultiplicity) {
+			currentNote.stop();
+			this.mapOfAllNotes[freq]=false;
+		} 
+	},
+	switchOffAllRelativeNotes : function() {
+		var freqs = [];
+		for (var key in this.mapOfAllNotes) {
+			freqs.push(key);
+		}
+		for(var i=0; i <freqs.length; i++) {
+			this.switchOffRelativeNoteComplete(freqs[i]);
+		}
+	},
+	setBasenoteInHz : function(freqInHz) {
+		this.frequencyOfBasenoteInHz = freqInHz;
+	},
+	muteOrUnmute : function(isMute) {
+		Tone.Master.mute = isMute;
+	}
+};
+
+var mvcView = {
+	createLambdomaLinks: function() {
+		var max_x_element=document.getElementById("max_x_element");
+		var max_x;
+		if(max_x_element.value>0) {
+			max_x=max_x_element.value;
+		}
+		var max_y_element=document.getElementById("max_y_element");
+		var max_y;
+		if(max_y_element.value>0) {
+			max_y=max_y_element.value;
+		}
+		var lambdomaElem=document.createElement("div");
+		lambdomaElem.setAttribute("id","lambdomaDiv");
+		document.body.appendChild(lambdomaElem);
+		for(var i=1;i<=max_y;i++) {
+			for(var j=1;j<=max_x;j++) {
+				var span=document.createElement("span");
+				span.setAttribute("onclick","controller.playNoteWithParams(this,"+j+","+i+"); return false;");
+				span.setAttribute("class","lambdomaElementOff");
+				var textNode=document.createTextNode(""+j+"/"+i+"");
+				span.appendChild(textNode);
+				lambdomaElem.appendChild(span);
+			}
+			lambdomaElem.appendChild(document.createElement("BR"));
+		}
+	},
+	deleteLambdomaLinks: function() {
+		var lambdomaDiv=document.getElementById("lambdomaDiv");
+		if(lambdomaDiv) {
+			document.body.removeChild(lambdomaDiv);
+		}
+	},
+	getBaseNoteInHz : function() {
+		var value=document.getElementById('base_note_in_hz_element').value;
+		if(typeof value !== "undefined" && value !== 0) {
+			return value;
+		} else {
+			return null;
+		}
+	}
+};
+
+var controller = {
+	model : soundModel,
+	view : mvcView,
+	deleteLambdoma : mvcView.deleteLambdomaLinks,
+	createLambdoma : mvcView.createLambdomaLinks,
+	playNoteWithParams : function(htmlElement,x,y) {
+		if(htmlElement.className === "lambdomaElementOff") {
+			htmlElement.className="lambdomaElementOn";
+			this.model.switchOnRelativeNote((1.0*x)/y);
+		} else {
+			htmlElement.className="lambdomaElementOff";
+			this.model.switchOffSingleRelativeNote((1.0*x)/y);
+		}
+	},
+	applyDisplayedBaseNoteInHz : function() {
+		var baseNote = this.view.getBaseNoteInHz();
+		if(baseNote !== null) {
+			this.model.setBasenoteInHz(baseNote);
+		}
+	},
+	resetLambdoma : function() {
+		this.deleteLambdoma();
+		this.createLambdoma();
+		this.applyDisplayedBaseNoteInHz();
+	},
+	switchOffAllRelativeNotes : function() {
+		this.model.switchOffAllRelativeNotes();
+		this.resetLambdoma();
+	},
+	muteOrUnmuteEverything : function(isMute) {
+		this.model.muteOrUnmute(isMute);
+	},
+	initializeView : function() {
+		document.getElementById('muteCheckbox').checked=false;
+	}
+};
+
+</script>
+<title>
+a sound
+</title>
+</head>
+<body onload="controller.createLambdoma(); controller.initializeView(); return true;">
+<a href="" onclick="controller.resetLambdoma(); return false;">lambdoma jetzt anzeigen</a>
+<br>
+maximales x:<input id="max_x_element" value="16">
+<br>
+maximales y:<input id="max_y_element" value="16">
+<br>
+Frequenz des Grundtons (in Hz):<input id="base_note_in_hz_element" value="220"> <a href="" onclick=" controller.applyDisplayedBaseNoteInHz(); return false;">Frequenz anwenden</a>
+<br>
+<a href="" onclick=" controller.switchOffAllRelativeNotes(); return false;">alle Töne aus</a>
+<br>
+<label>
+	<input type="checkbox" onclick="controller.muteOrUnmuteEverything(this.checked); return true;" id="muteCheckbox">
+	Töne ausblenden 
+</label>
+<br>
+</body>
+</html>
