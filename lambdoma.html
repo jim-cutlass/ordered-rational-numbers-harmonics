@@ -1,4 +1,4 @@
-﻿<html>
+<html>
 <meta charset="utf-8">
 <head>
 <style>
@@ -35,6 +35,8 @@ span.lambdomaElementOn {
 
 "use strict";
 
+const displayDebugAlerts = false;
+
 if(typeof Tone != "undefined") {
 
 	// Tone.js  docs are here: https://tonejs.github.io
@@ -54,7 +56,9 @@ if(typeof Tone != "undefined") {
 		this.tone.stop();
 	}
 
-	alert("using Tone-lib version " + Tone.version);
+    if(displayDebugAlerts) {
+		alert("using Tone-lib version " + Tone.version);
+	}
 	
 } else if(typeof Audiolet != "undefined") {
 
@@ -78,7 +82,10 @@ if(typeof Tone != "undefined") {
 	ToneWithMultiplicity.prototype.stop = function() {
 		this.sine.disconnect(audiolet.output);
 	};
-	alert("using Audiolet-lib");
+	
+	if(displayDebugAlerts) {
+		alert("using Audiolet-lib");
+	}
 }
 </script>
 
@@ -216,19 +223,19 @@ a sound
 </title>
 </head>
 <body onload="controller.createLambdoma(); controller.initializeView(); return true;">
-<a href="" onclick="controller.resetLambdoma(); return false;">lambdoma jetzt anzeigen</a>
+<a href="" onclick="controller.resetLambdoma(); return false;">Reset UI</a>
 <br>
 maximales x:<input id="max_x_element" value="16">
 <br>
 maximales y:<input id="max_y_element" value="16">
 <br>
-Frequenz des Grundtons (in Hz):<input id="base_note_in_hz_element" value="220"> <a href="" onclick=" controller.applyDisplayedBaseNoteInHz(); return false;">Frequenz anwenden</a>
+Frequency of base note (in Hz):<input id="base_note_in_hz_element" value="220"> <a href="" onclick=" controller.applyDisplayedBaseNoteInHz(); return false;">Apply frequency</a>
 <br>
-<a href="" onclick=" controller.switchOffAllRelativeNotes(); return false;">alle Töne aus</a>
+<a href="" onclick=" controller.switchOffAllRelativeNotes(); return false;">All tones off</a>
 <br>
 <label>
 	<input type="checkbox" onclick="controller.muteOrUnmuteEverything(this.checked); return true;" id="muteCheckbox">
-	Töne ausblenden 
+	Disable tones 
 </label>
 <br>
 </body>
