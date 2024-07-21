@@ -90,7 +90,7 @@ if(typeof Tone != "undefined") {
 </script>
 
 <script>
-var soundModel = {
+const soundModel = {
 	mapOfAllNotes : {},
 	frequencyOfBasenoteInHz : 220.0,
 	switchOnRelativeNote : function(freq) {
@@ -137,7 +137,7 @@ var soundModel = {
 	}
 };
 
-var mvcView = {
+const mvcView = {
 	createLambdomaLinks: function() {
 		var max_x_element=document.getElementById("max_x_element");
 		var max_x;
@@ -180,42 +180,42 @@ var mvcView = {
 	}
 };
 
-var controller = {
-	model : soundModel,
-	view : mvcView,
-	deleteLambdoma : mvcView.deleteLambdomaLinks,
-	createLambdoma : mvcView.createLambdomaLinks,
-	playNoteWithParams : function(htmlElement,x,y) {
+function ControllerClass(model, view, deleteLambdoma, createLambdoma) {
+    this.createLambdoma = createLambdoma;
+    this.deleteLambdoma = deleteLambdoma;
+	this.playNoteWithParams = function(htmlElement,x,y) {
 		if(htmlElement.className === "lambdomaElementOff") {
 			htmlElement.className="lambdomaElementOn";
-			this.model.switchOnRelativeNote((1.0*x)/y);
+			model.switchOnRelativeNote((1.0*x)/y);
 		} else {
 			htmlElement.className="lambdomaElementOff";
-			this.model.switchOffSingleRelativeNote((1.0*x)/y);
+			model.switchOffSingleRelativeNote((1.0*x)/y);
 		}
-	},
-	applyDisplayedBaseNoteInHz : function() {
-		var baseNote = this.view.getBaseNoteInHz();
+	};
+	this.applyDisplayedBaseNoteInHz = function() {
+		var baseNote = view.getBaseNoteInHz();
 		if(baseNote !== null) {
-			this.model.setBasenoteInHz(baseNote);
+			model.setBasenoteInHz(baseNote);
 		}
-	},
-	resetLambdoma : function() {
+	};
+	this.resetLambdoma = function() {
 		this.deleteLambdoma();
 		this.createLambdoma();
 		this.applyDisplayedBaseNoteInHz();
-	},
-	switchOffAllRelativeNotes : function() {
-		this.model.switchOffAllRelativeNotes();
+	};
+	this.switchOffAllRelativeNotes = function() {
+		model.switchOffAllRelativeNotes();
 		this.resetLambdoma();
-	},
-	muteOrUnmuteEverything : function(isMute) {
-		this.model.muteOrUnmute(isMute);
-	},
-	initializeView : function() {
+	};
+	this.muteOrUnmuteEverything = function(isMute) {
+		model.muteOrUnmute(isMute);
+	};
+	this.initializeView = function() {
 		document.getElementById('muteCheckbox').checked=false;
-	}
+	};
 };
+
+const controller = new ControllerClass(soundModel, mvcView, mvcView.deleteLambdomaLinks, mvcView.createLambdomaLinks);
 
 </script>
 <title>
