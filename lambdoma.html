@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <meta charset="utf-8">
 <head>
@@ -7,7 +8,7 @@ span.lambdomaElementOff {
   height: 2em;
   color: green;
   background-color: lightyellow;
-  border:  2px solid red;
+  border:  2px solid black;
   border-radius: .1em;
   margin:  2px;
   padding: 2px;
@@ -17,14 +18,17 @@ span.lambdomaElementOff {
 span.lambdomaElementOn { 
   width: 2em;
   height: 2em;
-  color: green;
-  background-color: blue;
   color: white;
-  border:  2px solid red;
+  background-color: blue;
+  border:  2px solid black;
   border-radius: .1em;
   margin:  2px;
   padding: 2px;
   display: inline-block;
+}
+
+span.lambdomaElementAdditionallySelected { 
+  border:  2px solid red;
 }
 </style>
 
@@ -90,9 +94,11 @@ if(typeof Tone != "undefined") {
 </script>
 
 <script>
-const soundModel = {
+// TO DO: let soundAndConfigModel act as portal to soundModel and configModel
+const soundAndConfigModel = {
 	mapOfAllNotes : {},
 	frequencyOfBasenoteInHz : 220.0,
+	isSelectNotPlayMode : false,
 	switchOnRelativeNote : function(freq) {
 		if( this.mapOfAllNotes[freq] instanceof ToneWithMultiplicity) {
 			this.mapOfAllNotes[freq].multiplicity++;
@@ -134,7 +140,13 @@ const soundModel = {
 	},
 	muteOrUnmute : function(isMute) {
 		Tone.Master.mute = isMute;
-	}
+	},
+	setSelectNotPlayMode : function(x) {
+		this.isSelectNotPlayMode = x;
+	},
+	isSelectNotPlayMode : function(x) {
+		return this.isSelectNotPlayMode;
+	},
 };
 
 const mvcView = {
@@ -155,7 +167,7 @@ const mvcView = {
 		for(var i=1;i<=max_y;i++) {
 			for(var j=1;j<=max_x;j++) {
 				var span=document.createElement("span");
-				span.setAttribute("onclick","controller.playNoteWithParams(this,"+j+","+i+"); return false;");
+				span.setAttribute("onclick","controller.selectOrActivateNoteWithParams(this,"+j+","+i+"); return false;");
 				span.setAttribute("class","lambdomaElementOff");
 				var textNode=document.createTextNode(""+j+"/"+i+"");
 				span.appendChild(textNode);
@@ -177,19 +189,38 @@ const mvcView = {
 		} else {
 			return null;
 		}
-	}
+	},
 };
 
 function ControllerClass(model, view, deleteLambdoma, createLambdoma) {
     this.createLambdoma = createLambdoma;
     this.deleteLambdoma = deleteLambdoma;
+    this.selectOrActivateNoteWithParams = function(htmlElement,x,y) {
+    	if(model.isSelectNotPlayMode) {
+    		this.selectNoteWithParams(htmlElement,x,y);
+    	} else {
+    		this.playNoteWithParams(htmlElement,x,y);
+    	}
+    }
 	this.playNoteWithParams = function(htmlElement,x,y) {
-		if(htmlElement.className === "lambdomaElementOff") {
+		if(!htmlElement.className.includes("lambdomaElementOn")) {
 			htmlElement.className="lambdomaElementOn";
 			model.switchOnRelativeNote((1.0*x)/y);
 		} else {
 			htmlElement.className="lambdomaElementOff";
 			model.switchOffSingleRelativeNote((1.0*x)/y);
+		}
+	};
+	this.selectNoteWithParams = function(htmlElement,x,y) {
+		if(!htmlElement.className.includes("lambdomaElementAdditionallySelected")) {
+			htmlElement.className += " lambdomaElementAdditionallySelected";
+		} else {
+			if(!htmlElement.className.includes("lambdomaElementOff")) {
+				htmlElement.className="lambdomaElementOff";
+			}
+			if(!htmlElement.className.includes("lambdomaElementOn")) {
+				htmlElement.className="lambdomaElementOn";
+			}
 		}
 	};
 	this.applyDisplayedBaseNoteInHz = function() {
@@ -213,11 +244,17 @@ function ControllerClass(model, view, deleteLambdoma, createLambdoma) {
 	this.initializeView = function() {
 		document.getElementById('muteCheckbox').checked=false;
 	};
+	this.activatePlayNotSelectMode = function() {
+		model.setSelectNotPlayMode(false);
+	}
+	this.activateSelectNotPlayMode = function() {
+		model.setSelectNotPlayMode(true);
+	}
 };
-
-const controller = new ControllerClass(soundModel, mvcView, mvcView.deleteLambdomaLinks, mvcView.createLambdomaLinks);
+const controller = new ControllerClass(soundAndConfigModel, mvcView, mvcView.deleteLambdomaLinks, mvcView.createLambdomaLinks);
 
 </script>
+
 <title>
 Harmonic sounds, select and activate possible branch
 </title>
@@ -233,10 +270,14 @@ Frequency of base note (in Hz):<input id="base_note_in_hz_element" value="220"> 
 <br>
 <a href="" onclick=" controller.switchOffAllRelativeNotes(); return false;">All tones off</a>
 <br>
-<label>
-	<input type="checkbox" onclick="controller.muteOrUnmuteEverything(this.checked); return true;" id="muteCheckbox">
-	Disable tones 
-</label>
+<input type="checkbox" onclick="controller.muteOrUnmuteEverything(this.checked); return true;" id="muteCheckbox">
+<label for="muteCheckbox">Disable tones </label>
+<br/>
+<input type="radio" onclick="controller.activatePlayNotSelectMode(); return true;" name="playOrSelectMode" value="play" id="playSelected" checked>
+<label for="playSelected">play</label>
+<input type="radio" onclick="controller.activateSelectNotPlayMode(); return true;" name="playOrSelectMode" value="select" id="selectSelected">
+<label for="selectSelected">select</label>
+Select tones 
 <br>
 </body>
 </html>
